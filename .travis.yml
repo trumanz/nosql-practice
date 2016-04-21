@@ -4,12 +4,13 @@ dist: trusty
 language: python
 python:
    - "2.7"
-
+install:
+   - pip install cassandra-driver
 services:
 - docker
 
 before_script:
-- ./prepare_cassandra_python_driver.sh 
+#- ./prepare_cassandra_python_driver.sh 
 - ./prepare_service_in_docker.sh
 script:
 - ./run-ci.sh
