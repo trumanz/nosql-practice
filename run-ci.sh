@@ -10,9 +10,13 @@
 #python  -V
 
 
+docker inspect --format='{{ .NetworkSettings.IPAddress }}'  cassandra0
+docker inspect --format='{{ .NetworkSettings.IPAddress }}'  cassandra1
+docker inspect --format='{{ .NetworkSettings.IPAddress }}'  cassandra2
+
 export CASSANDRA_ADDRESS=$(docker inspect --format='{{ .NetworkSettings.IPAddress }}'  cassandra1)
 
 
 
-python -m unittest discover  -s  ./src
+python -m unittest discover -v  -s  ./src  -p test*.py
 

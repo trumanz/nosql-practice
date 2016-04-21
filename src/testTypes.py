@@ -12,7 +12,7 @@ class TestCassandraType(unittest.TestCase):
           cls._session = cls._cluster.connect()
           cls._session.execute("DROP KEYSPACE IF EXISTS testSpace")
           cls._session.execute("DROP KEYSPACE IF EXISTS testSpace")
-          cls._session.execute("CREATE KEYSPACE testSpace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1}")
+          cls._session.execute("CREATE KEYSPACE testSpace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 2}")
           cls._session.execute("USE testSpace")
     @classmethod
     def tearDownClass(cls):
@@ -31,10 +31,15 @@ class TestCassandraType(unittest.TestCase):
 
     def test_set(self):
           session = TestCassandraType._session
-          cql = "CREATE TABLE id ("
-          cql = cql +  "id  text  PRIMARY KEY,"
-          cql = cql +  "tag  set<text>"
-          cql = cql + ")"
+          cql = "CREATE TABLE persons ("
+          cql = cql +  "id text PRIMARY KEY,"
+          cql = cql +  "addrs set<text>"
+          cql = cql + " )"
           session.execute(cql)
-                  
+          session.execute("INSERT INTO persons (id, addrs) VALUES('foo',  {'addr1', 'addr2'})")
+          session.execute("UPDATE persons SET addrs  = addrs + {'addr3'} WHERE id = 'foo'")
+          rows = session.execute("SELECT id, addrs FROM persons WHERE id = 'foo'").current_rows;
+          self.assertEqual(1, len(rows))
+          self.assertEqual(3, len(rows[0].addrs))
+          
          

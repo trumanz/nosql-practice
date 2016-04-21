@@ -1,16 +1,19 @@
 #!/bin/sh
 
-CASSANDRA_NODE_NUMBER=2
+CASSANDRA_NODE_NUMBER=3
+
+IMAGE="trumanz/dsecassandra"
 
 start_nodes(){
    local CASSANDRA_CLIENT_PORT=10000
-   local COUNT=$CASSANDRA_NODE_NUMBER 
-   while [ $COUNT  -gt 0 ]; do 
+   local COUNT=0
+   while [ $COUNT  -lt $CASSANDRA_NODE_NUMBER ]; do 
        local CONTAINER_NAME="cassandra$COUNT"
        echo "Start $CONTAINER_NAME"
-       docker run --name=$CONTAINER_NAME   -h $CONTAINER_NAME  -t -d -i  -p "$CASSANDRA_CLIENT_PORT:9042"  trumanz/dsecassandra   /bin/bash
+       docker rm  -f  $CONTAINER_NAME  
+       docker run --name=$CONTAINER_NAME   -h $CONTAINER_NAME  -t -d -i  -p "$CASSANDRA_CLIENT_PORT:9042"  $IMAGE   /bin/bash
        CASSANDRA_CLIENT_PORT=$(($CASSANDRA_CLIENT_PORT + 1))
-       COUNT=$((COUNT - 1))
+       COUNT=$((COUNT + 1))
    done
 }
 
@@ -19,15 +22,17 @@ start_nodes(){
 
 start_service() {
 
-   IP1=$(docker inspect --format='{{ .NetworkSettings.IPAddress }}'  cassandra1)
-   echo "cassandra1 IP $IP1"
+   IP0=$(docker inspect --format='{{ .NetworkSettings.IPAddress }}'  cassandra0)
+   echo "cassandra0 IP $IP0"
   
-   local COUNT=$CASSANDRA_NODE_NUMBER 
-   while [ $COUNT  -gt 0 ]; do 
+   local COUNT=0
+   while [ $COUNT  -lt $CASSANDRA_NODE_NUMBER ]; do 
        local CONTAINER_NAME="cassandra$COUNT"
        echo "start $CONTAINER_NAME cassandra service"
-       docker exec  -d -t -i  $CONTAINER_NAME   sh -c "env SEED_IPS=${IP1} DATA_CENTER=dc_cassandra /run-cassandra.sh"
-       COUNT=$((COUNT - 1))
+       docker exec  -d -t -i  $CONTAINER_NAME   sh -c "env SEED_IPS=${IP0} DATA_CENTER=dc_cassandra /config-cassandra.sh"
+       docker exec  -d -t -i  $CONTAINER_NAME   sh -c "/opt/dse-4.8.2/bin/dse  cassandra  -f  -c  > /cassandra.log 2>&1"
+       COUNT=$((COUNT + 1))
+       sleep 60
    done
    
 }
@@ -35,7 +40,7 @@ start_service() {
 wait_service(){
    RETRY_MAX=10
    while [ $RETRY_MAX -gt 0 ]; do
-        docker exec -ti   cassandra1  /opt/dse-4.8.2/bin/nodetool status 2>&1
+        docker exec -ti   cassandra0  /opt/dse-4.8.2/bin/nodetool status 2>&1
         if [ $? -eq 0 ]; then
            echo "successful"
            break
@@ -45,7 +50,7 @@ wait_service(){
         fi
         RETRY_MAX=$((RETRY_MAX - 1))
    done
-   docker exec -ti   cassandra1  /opt/dse-4.8.2/bin/nodetool  status 
+   docker exec -ti   cassandra0  /opt/dse-4.8.2/bin/nodetool  status 
 }
 
 start_nodes

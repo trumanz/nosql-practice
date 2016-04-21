@@ -9,7 +9,7 @@ services:
 - docker
 
 before_script:
-- ./prepare.sh
-
+- ./prepare_cassandra_python_driver.sh 
+- ./prepare_service_in_docker.sh
 script:
 - ./run-ci.sh
